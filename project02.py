@@ -12,15 +12,69 @@ score = [0]
 direct = ['D']
 green = (0, 255, 0) 
 blue = (0, 0, 128)
+color_light = (80,80,80)
+color_dark = (100,100,100)
+no_color = (255,255,255)
 playerd = pygame.image.load('playerd.png')
 players = pygame.image.load('players.png')
 playera = pygame.image.load('playera.png')
 playerw = pygame.image.load('playerw.png')
 player = playerd
-screen = pygame.display.set_mode((500,500))
+screen = pygame.display.set_mode((700,600))
 pygame.display.set_caption('WUMPUS GAME')
-def input_graph():
-    file = open('input.txt','r')
+def menu():
+    font2 = pygame.font.SysFont("arial", 36)
+    input1 = font2.render('input1', True, no_color)
+    input2 = font2.render('input2', True, no_color)
+    input3 = font2.render('input3', True, no_color)
+    input4 = font2.render('input4', True, no_color)
+    input5 = font2.render('input5', True, no_color)
+    pygame.display.update()
+    while True:
+        mouse = pygame.mouse.get_pos()
+        for ev in pygame.event.get(): 
+            if ev.type == pygame.QUIT: 
+                pygame.quit() 
+            if ev.type == pygame.MOUSEBUTTONDOWN:
+                if 80 <= mouse[0] <= 80 + 110 and 100 <= mouse[1] <= 100 +40:
+                    return 'map/input1.txt'
+                if 80 <= mouse[0] <= 80 + 110 and 200 <= mouse[1] <= 200 +40:
+                    return 'map/input2.txt'
+                if 80 <= mouse[0] <= 80 + 110 and 300 <= mouse[1] <= 300 +40:
+                    return 'map/input3.txt'
+                if 80 <= mouse[0] <= 80 + 110 and 400 <= mouse[1] <= 400 +40:
+                    return 'map/input4.txt'
+                if 80 <= mouse[0] <= 80 + 110 and 500 <= mouse[1] <= 500 +40:
+                    return 'map/input5.txt'
+        if 80 <= mouse[0] <= 80 + 110 and 100 <= mouse[1] <= 100 +40: 
+            pygame.draw.rect(screen,color_light,[80,100,110,40])  
+        else: 
+            pygame.draw.rect(screen,color_dark,[80,100,110,40])
+        screen.blit(input1 , (80 + 10, 100))
+        if 80 <= mouse[0] <= 80 + 110 and 200 <= mouse[1] <= 200 +40: 
+            pygame.draw.rect(screen,color_light,[80,200,110,40])  
+        else: 
+            pygame.draw.rect(screen,color_dark,[80,200,110,40])
+        screen.blit(input2 , (80 + 10, 200))
+        if 80 <= mouse[0] <= 80 + 110 and 300 <= mouse[1] <= 300 +40: 
+            pygame.draw.rect(screen,color_light,[80,300,110,40])  
+        else: 
+            pygame.draw.rect(screen,color_dark,[80,300,110,40])
+        screen.blit(input3 , (80 + 10, 300))
+        if 80 <= mouse[0] <= 80 + 110 and 400 <= mouse[1] <= 400 +40: 
+            pygame.draw.rect(screen,color_light,[80,400,110,40])  
+        else: 
+            pygame.draw.rect(screen,color_dark,[80,400,110,40])
+        screen.blit(input4 , (80 + 10, 400))
+        if 80 <= mouse[0] <= 80 + 110 and 500 <= mouse[1] <= 500 +40: 
+            pygame.draw.rect(screen,color_light,[80,500,110,40])  
+        else: 
+            pygame.draw.rect(screen,color_dark,[80,500,110,40])
+        screen.blit(input5 , (80 + 10, 500))
+        
+        pygame.display.update()
+def input_graph(file_input):
+    file = open(file_input,'r')
     temp = list(map(int,file.readline().split()))
     height[0],width[0] = temp[0],temp[1]
     for i in range(height[0]):
@@ -35,6 +89,46 @@ def input_graph():
     screen = pygame.display.set_mode((width[0] * square,(height[0] + 2) * square))
     screen.fill((0,0,0))
     pygame.display.flip()
+def renderMapNotFog():
+    global player
+    global Agent
+    global graph2
+    screen.fill((103, 100, 112))
+    wumpus = pygame.image.load('wumpus.png')
+    gold = pygame.image.load('gold.png')
+    hole = pygame.image.load('hole.png')
+    door = pygame.image.load('door.png')
+    yellow = pygame.image.load('yellow.png')
+    for i in range(len(graph)):
+        for j in range(len(graph[0])):
+            if 'W' in graph[i][j]:
+                screen.blit(wumpus, (j* square,i * square))
+            if 'G' in graph[i][j]:
+                screen.blit(gold, (j* square,i * square))
+            if 'P' in graph[i][j]:
+                screen.blit(hole, (j* square,i * square))
+            if 'D' in graph[i][j]:
+                screen.blit(door, (j* square,i * square))
+            if 'S' in graph[i][j]:
+                font1 = pygame.font.SysFont("arial", 12)
+                text1 = font1.render("Stench", True, green, blue)
+                textRect1 = text1.get_rect()
+                textRect1.center = (j* square,i * square + 5)
+                screen.blit(text1, textRect1.center)
+            if 'B' in graph[i][j]:
+                font1 = pygame.font.SysFont("arial", 12)
+                text1 = font1.render("Breeze", True, green, blue)
+                textRect1 = text1.get_rect()
+                textRect1.center = (j* square,i * square + 18)
+                screen.blit(text1, textRect1.center)
+    screen.blit(player, (Agent[0]* square,Agent[1] * square))
+    pygame.display.update()
+    font1 = pygame.font.SysFont("arial", 26)
+    text1 = font1.render("SCORE: " + str(score[0]), True, green, blue)
+    textRect1 = text1.get_rect()
+    textRect1.center = (0, height[0] * square + 3)
+    screen.blit(text1, textRect1.center)
+    pygame.display.update()
     
 def renderMap():
     global player
@@ -106,6 +200,7 @@ def agent_play():
     return 'W',False
 
 def canMove(x,y):
+    global graph
     if x >= width[0] or x < 0:
         return False
     if y >= height[0] or y < 0:
@@ -116,7 +211,7 @@ def change_direct(direct_):
     global player
     global Agent
     if direct[0] == direct_:
-        temp = Agent
+        temp = Agent.copy()
         if direct_ == 'W':
             Agent[1] -= 1
         if direct_ == 'S':
@@ -127,6 +222,7 @@ def change_direct(direct_):
             Agent[0] -= 1
         if canMove(Agent[0],Agent[1]) == False:
             Agent = temp
+            return 0
         return 10
     else:
         if direct_ == 'W':
@@ -158,6 +254,7 @@ def play():
         print('File no agent')
         exit(0)
     renderMap()
+    #renderMapNotFog()
     run = True
     while run == True:
         #direct_,shot = agent_play()
@@ -169,11 +266,14 @@ def play():
             score[0] -= 10000
             run = False
         if 'G' in graph[Agent[1]][Agent[0]]:
+            renderMap()
+            time.sleep(0.2)
             score[0] += 100
             graph[Agent[1]][Agent[0]] = graph[Agent[1]][Agent[0]].replace('G', '')   
         if shot == True :
             if 'D' in graph[Agent[1]][Agent[0]]:
                 score[0] += 10
+                renderMap()
                 font = pygame.font.SysFont("arial", 36)
                 text = font.render('Escape', True, green, blue)
                 textRect = text.get_rect()
@@ -191,9 +291,13 @@ def play():
                     buf = [(x,y),(x+1,y),(x-1,y),(x,y+1),(x,y-1)]
                     while len(buf) > 0:
                         x2,y2 = buf.pop(0)
+                        if canMove(y2,x2) == False:
+                            continue
                         buf2 = [(x2+1,y2),(x2-1,y2),(x2,y2+1),(x2,y2-1)]
                         while len(buf2) > 0:
                             x3,y3 = buf2.pop(0)
+                            if canMove(y3,x3) == False:
+                                continue
                             if 'W' in graph[y3][x3]:
                                 if 'S' not in graph[y2][x2]:
                                     graph[y2][x2] += 'S'
@@ -211,5 +315,6 @@ def play():
     time.sleep(1)
             
 if __name__ == '__main__':
-    input_graph()
+    file_input = menu()
+    input_graph(file_input)
     play()
