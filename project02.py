@@ -7,6 +7,7 @@ width = [0]
 square = 40
 pygame.init()
 Agent = [-1,-1]
+door = [-1,-1]
 score = [0]
 direct = ['D']
 green = (0, 255, 0) 
@@ -38,21 +39,40 @@ def input_graph():
 def renderMap():
     global player
     global Agent
+    global graph2
     screen.fill((103, 100, 112))
     wumpus = pygame.image.load('wumpus.png')
     gold = pygame.image.load('gold.png')
     hole = pygame.image.load('hole.png')
+    door = pygame.image.load('door.png')
+    yellow = pygame.image.load('yellow.png')
+    if 'F' in graph2[Agent[1]][Agent[0]]:
+        graph2[Agent[1]][Agent[0]] = graph2[Agent[1]][Agent[0]].replace('F','')
     for i in range(len(graph)):
         for j in range(len(graph[0])):
-            if 'W' in graph[i][j]:
+            if 'F' not in graph2[i][j]:
+                graph2[i][j] = graph[i][j]
+                screen.blit(yellow, (j* square,i * square))
+            if 'W' in graph2[i][j]:
                 screen.blit(wumpus, (j* square,i * square))
-            if 'G' in graph[i][j]:
+            if 'G' in graph2[i][j]:
                 screen.blit(gold, (j* square,i * square))
-            if 'P' in graph[i][j]:
+            if 'P' in graph2[i][j]:
                 screen.blit(hole, (j* square,i * square))
-            if 'A' in graph[i][j]:
-                Agent = [j,i]
-                graph[i][j] = ''
+            if 'D' in graph2[i][j]:
+                screen.blit(door, (j* square,i * square))
+            if 'S' in graph2[i][j]:
+                font1 = pygame.font.SysFont("arial", 12)
+                text1 = font1.render("Stench", True, green, blue)
+                textRect1 = text1.get_rect()
+                textRect1.center = (j* square,i * square + 5)
+                screen.blit(text1, textRect1.center)
+            if 'B' in graph2[i][j]:
+                font1 = pygame.font.SysFont("arial", 12)
+                text1 = font1.render("Breeze", True, green, blue)
+                textRect1 = text1.get_rect()
+                textRect1.center = (j* square,i * square + 18)
+                screen.blit(text1, textRect1.center)
     screen.blit(player, (Agent[0]* square,Agent[1] * square))
     pygame.display.update()
     font1 = pygame.font.SysFont("arial", 26)
@@ -107,6 +127,7 @@ def change_direct(direct_):
             Agent[0] -= 1
         if canMove(Agent[0],Agent[1]) == False:
             Agent = temp
+        return 10
     else:
         if direct_ == 'W':
             player = playerw
@@ -117,23 +138,69 @@ def change_direct(direct_):
         if direct_ == 'A':
             player = playera
         direct[0] = direct_
+    return 0
         
 def play():
+    global Agent
+    global graph
+    global graph2
+    for i in range(len(graph)):
+        graph2.append([])
+        for j in range(len(graph[0])):
+            graph2[i].append('F')
+    #find agent
+    for i in range(len(graph)):
+        for j in range(len(graph[0])):
+            if 'A' in graph[i][j]:
+                Agent = [j,i]
+                graph[i][j] = graph[i][j].replace('A', 'D')
     if Agent[0] == -1 and Agent[1] == -1:
         print('File no agent')
         exit(0)
+    renderMap()
     run = True
     while run == True:
         #direct_,shot = agent_play()
         direct_,shot = human_play()
-        change_direct(direct_)
+        move = False
+        if shot == False:
+            score[0] -= change_direct(direct_)
         if 'P' in graph[Agent[1]][Agent[0]] or 'W' in graph[Agent[1]][Agent[0]]:
             score[0] -= 10000
             run = False
         if 'G' in graph[Agent[1]][Agent[0]]:
             score[0] += 100
             graph[Agent[1]][Agent[0]] = graph[Agent[1]][Agent[0]].replace('G', '')   
-        #if shot == True:
+        if shot == True :
+            if 'D' in graph[Agent[1]][Agent[0]]:
+                score[0] += 10
+                font = pygame.font.SysFont("arial", 36)
+                text = font.render('Escape', True, green, blue)
+                textRect = text.get_rect()
+                textRect.center = (0, (height[0] + 1) * square + 3)
+                screen.blit(text, textRect.center)
+                pygame.display.update()
+                return
+            else:
+                score[0] -= 100
+                temp = Agent.copy()
+                change_direct(direct_)
+                if 'W' in graph[Agent[1]][Agent[0]]:
+                    graph[Agent[1]][Agent[0]] = graph[Agent[1]][Agent[0]].replace('W','')
+                    x,y = Agent[0],Agent[1]
+                    buf = [(x,y),(x+1,y),(x-1,y),(x,y+1),(x,y-1)]
+                    while len(buf) > 0:
+                        x2,y2 = buf.pop(0)
+                        buf2 = [(x2+1,y2),(x2-1,y2),(x2,y2+1),(x2,y2-1)]
+                        while len(buf2) > 0:
+                            x3,y3 = buf2.pop(0)
+                            if 'W' in graph[y3][x3]:
+                                if 'S' not in graph[y2][x2]:
+                                    graph[y2][x2] += 'S'
+                                break
+                            if len(buf2) == 0:
+                                graph[y2][x2] = graph[y2][x2].replace('S','')
+                Agent = temp
         renderMap()
     font = pygame.font.SysFont("arial", 36)
     text = font.render('GAME OVER', True, green, blue)
@@ -145,6 +212,4 @@ def play():
             
 if __name__ == '__main__':
     input_graph()
-    renderMap()
     play()
-    print(Agent)
