@@ -7,7 +7,6 @@ width = [0]
 square = 40
 pygame.init()
 Agent = [-1,-1]
-door = [-1,-1]
 score = [0]
 direct = ['D']
 green = (0, 255, 0) 
@@ -22,6 +21,20 @@ playerw = pygame.image.load('playerw.png')
 player = playerd
 screen = pygame.display.set_mode((700,600))
 pygame.display.set_caption('WUMPUS GAME')
+return_home = False
+#use in logic
+visited = list()
+safe = list()
+unsafe = list()
+
+def canMove(x,y):
+    global graph
+    if x >= width[0] or x < 0:
+        return False
+    if y >= height[0] or y < 0:
+        return False
+    return True
+
 def menu():
     font2 = pygame.font.SysFont("arial", 36)
     input1 = font2.render('input1', True, no_color)
@@ -195,21 +208,108 @@ def human_play():
                     if event.key == pygame.K_SPACE:
                         return direct[0],True
     return '',False
+def getAdj(node):
+    adj = []
+    x,y = node[0],node[1]
+    buf = [(x+1,y),(x-1,y),(x,y+1),(x,y-1)]
+    while len(buf) > 0:
+        temp = buf.pop(0)
+        if canMove(temp[0],temp[1]) == True:
+            adj.append(temp)
+    return adj
+
+def logic():
+    global Agent
+    global visited
+    global safe
+    global unsafe
+    global num
+    if Agent not in visited:
+        visited.append((Agent[0],Agent[1]))
+        if (Agent[0],Agent[1]) in safe:
+            safe.remove((Agent[0],Agent[1]))
+    else:
+        return
+    for it in getAdj(Agent):
+        if 'S' in graph2[Agent[1]][Agent[0]] or 'B' in graph2[Agent[1]][Agent[0]]:
+            unsafe.append(it)
+        else:
+            if it not in visited and it not in safe:
+                safe.append(it)
+            if it in unsafe:
+                unsafe.remove(it)
+    for it in unsafe:
+        num1 = 0
+        num2 = 0
+        for it1 in getAdj(it):
+            if 'S' in graph2[it1[1]][it1[0]] and 'B' not in graph2[it1[1]][it1[0]]:
+                num1 += 1
+            if 'B' in graph2[it1[1]][it1[0]] and 'S' not in graph2[it1[1]][it1[0]]:
+                num2 += 1
+        if num1 >= 1 and num2 >= 1:
+            unsafe.remove(it)
+            if it not in safe and it not in visited:
+                safe.append(it)
+    
+def find_path():
+    global visited
+    global safe
+    global unsafe
+    global return_home
+    global graph2
+    explored = []
+    fqueue = [[(Agent[0],Agent[1])]]
+    while len(fqueue)>0:
+        temp = fqueue.pop(0)
+        last_node = temp[-1]
+        if return_home == False and last_node in safe:
+            if len(temp) == 1:
+                return temp[0]
+            else:
+                return temp[1]
+        if return_home == True and 'D' in graph2[last_node[1]][last_node[0]]:
+            if len(temp) == 1:
+                return temp[0]
+            else:
+                return temp[1]
+        for it in getAdj(last_node):
+            path_ = temp.copy()
+            path_.append(it)
+            if (it in visited or it in safe) and it not in explored and canMove(it[0],it[1]) == True:
+                fqueue.append(path_)
+                explored.append(it)
+    return []
 
 def agent_play():
-    return 'W',False
-
-def canMove(x,y):
-    global graph
-    if x >= width[0] or x < 0:
-        return False
-    if y >= height[0] or y < 0:
-        return False
-    return True
+    global Agent
+    global return_home
+    logic()
+    if return_home == False:
+        #bfs
+        temp = find_path()
+        if len(temp) == 0:
+            return_home = True
+            temp = find_path()
+    else:
+        temp = find_path()
+    direct_ = 'O'
+    if temp[0] == Agent[0] + 1 and temp[1] == Agent[1]:
+        direct_ = 'D'
+    if temp[0] == Agent[0] - 1 and temp[1] == Agent[1]:
+        direct_ = 'A'
+    if temp[0] == Agent[0] and temp[1] == Agent[1] + 1:
+        direct_ = 'S'
+    if temp[0] == Agent[0] and temp[1] == Agent[1] - 1:
+        direct_ = 'W'
+    if temp == (Agent[0],Agent[1]):
+        return direct_,True
+    return direct_,False
 
 def change_direct(direct_):
     global player
     global Agent
+    if direct_ == 'O':
+        return 0
     if direct[0] == direct_:
         temp = Agent.copy()
         if direct_ == 'W':
@@ -272,8 +372,8 @@ def play():
             pygame.display.update()
             time.sleep(0.3)
             return
-        #direct_,shot = agent_play()
-        direct_,shot = human_play()
+        direct_,shot = agent_play()
+        #direct_,shot = human_play()
         move = False
         if shot == False:
             score[0] -= change_direct(direct_)
