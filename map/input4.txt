@@ -1,4 +1,4 @@
-10 10
+10
 -.B.-.-.-.B.-.-.-.A
 B.P.B.S.SBG.P.B.GB.G.-
 -.B.S.W.W.SBG.B.P.B.-

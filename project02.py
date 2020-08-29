@@ -22,11 +22,26 @@ player = playerd
 screen = pygame.display.set_mode((700,600))
 pygame.display.set_caption('WUMPUS GAME')
 return_home = False
+path_shot = []
+
 #use in logic
 visited = list()
 safe = list()
 unsafe = list()
+wumpus = list()
+kb = list()
 
+def add_rule(rule):
+    global kb
+    if rule not in kb:
+        kb.append(rule)
+
+def negate(alpha):
+    if alpha[0] == "NOT":
+        alpha.pop(0)
+    else:
+        alpha.insert(0,"NOT")
+        
 def canMove(x,y):
     global graph
     if x >= width[0] or x < 0:
@@ -84,12 +99,12 @@ def menu():
         else: 
             pygame.draw.rect(screen,color_dark,[80,500,110,40])
         screen.blit(input5 , (80 + 10, 500))
-        
         pygame.display.update()
+        
 def input_graph(file_input):
     file = open(file_input,'r')
     temp = list(map(int,file.readline().split()))
-    height[0],width[0] = temp[0],temp[1]
+    height[0],width[0] = temp[0],temp[0]
     for i in range(height[0]):
         temp = list(map(str,file.readline().split(".")))
         row = []
@@ -102,6 +117,10 @@ def input_graph(file_input):
     screen = pygame.display.set_mode((width[0] * square,(height[0] + 2) * square))
     screen.fill((0,0,0))
     pygame.display.flip()
+
+#def unify(clause, var, value):
+    
+    
 def renderMapNotFog():
     global player
     global Agent
@@ -218,50 +237,105 @@ def getAdj(node):
             adj.append(temp)
     return adj
 
+def solve_kb():
+    global kb
+    
 def logic():
     global Agent
     global visited
     global safe
     global unsafe
     global num
-    if Agent not in visited:
+    global wumpus
+    global kb
+    if (Agent[0],Agent[1]) not in visited:
+        clause_cur = [[(2,"cur"),(2,(Agent[0],Agent[1]))]]
         visited.append((Agent[0],Agent[1]))
+        clause = [[(2,""),(2,(Agent[0],Agent[1]))]]
+        if 'S' in graph2[Agent[1]][Agent[0]]:
+            clause[0][0] = (2,clause[0][0][1]+ "Stench")
+        if 'B' in graph2[Agent[1]][Agent[0]]:
+            clause[0][0] = (2,clause[0][0][1]+ "Breeze")
+        add_rule(clause)
         if (Agent[0],Agent[1]) in safe:
             safe.remove((Agent[0],Agent[1]))
+        if clause_cur in kb:
+            kb.remove(clause_cur)
     else:
         return
-    for it in getAdj(Agent):
-        if 'S' in graph2[Agent[1]][Agent[0]] or 'B' in graph2[Agent[1]][Agent[0]]:
-            unsafe.append(it)
-        else:
+##    newClause = solve_kb()
+##    for it in newClause:
+##        if type(it[0][0]) == "str":
+##            continue
+##        if it[0][0][1] == "Safe":
+##            if it[0][1][1] not in safe:
+##                safe.append(it[0][1][1])
+##        if it[0][0][1] == "Wumpus":
+##            if it[0][1][1] not in wumpus:
+##                wumpus.append(it[0][1][1])
+
+                
+    #Agent in 'S' or 'B' -> unsafe(adj)
+    if 'S' in graph2[Agent[1]][Agent[0]] or 'B' in graph2[Agent[1]][Agent[0]]:
+        for it in getAdj(Agent):
+            if it not in safe and it not in visited and it not in unsafe:
+                unsafe.append(it)
+    #Agent not in 'S' or not in 'B' -> safe(adj)
+    else:
+        for it in getAdj(Agent):
             if it not in visited and it not in safe:
                 safe.append(it)
             if it in unsafe:
                 unsafe.remove(it)
+    
+    #'B' and 'S' in adj -> remove unsafe
     for it in unsafe:
-        num1 = 0
-        num2 = 0
+        num1 = (-1,-1)
+        num2 = (-1,-1)
         for it1 in getAdj(it):
-            if 'S' in graph2[it1[1]][it1[0]] and 'B' not in graph2[it1[1]][it1[0]]:
-                num1 += 1
-            if 'B' in graph2[it1[1]][it1[0]] and 'S' not in graph2[it1[1]][it1[0]]:
-                num2 += 1
-        if num1 >= 1 and num2 >= 1:
-            unsafe.remove(it)
+            if num1 == (-1,-1) and 'S' in graph2[it1[1]][it1[0]] and 'B' not in graph2[it1[1]][it1[0]]:
+                num1 = it1
+            if num2 == (-1,-1) and 'B' in graph2[it1[1]][it1[0]] and 'S' not in graph2[it1[1]][it1[0]]:
+                num2 = it1
+        if num1 != (-1,-1) and num2 != (-1,-1):
+            if it in unsafe:
+                unsafe.remove(it)
             if it not in safe and it not in visited:
                 safe.append(it)
-    
-def find_path():
+
+    for it in visited:
+        #node is 'S' and (all adj - 1) is visited and not 'W', only one cell unvisited  -> W in this one cell  
+        if 'S' in graph2[it[1]][it[0]]:
+            l1 = getAdj(it)
+            temp = []
+            for it1 in l1:
+                if it1 in visited:
+                    temp.append(it1)
+            if len(l1) - len(temp) == 1:
+                for it2 in l1:
+                    if it2 not in temp:
+                        temp2 = it2
+                        if temp2 not in wumpus:
+                            wumpus.append(temp2)
+                        if temp2 in safe:
+                            safe.remove(temp2)
+                        break
+
+            
+def find_path(shot = False):
     global visited
     global safe
     global unsafe
     global return_home
     global graph2
+    global wumpus
     explored = []
     fqueue = [[(Agent[0],Agent[1])]]
     while len(fqueue)>0:
         temp = fqueue.pop(0)
         last_node = temp[-1]
+        if last_node in wumpus and shot == True:
+            return temp
         if return_home == False and last_node in safe:
             if len(temp) == 1:
                 return temp[0]
@@ -275,6 +349,9 @@ def find_path():
         for it in getAdj(last_node):
             path_ = temp.copy()
             path_.append(it)
+            if shot == True and it in wumpus:
+                fqueue.append(path_)
+                break
             if (it in visited or it in safe) and it not in explored and canMove(it[0],it[1]) == True:
                 fqueue.append(path_)
                 explored.append(it)
@@ -283,15 +360,26 @@ def find_path():
 def agent_play():
     global Agent
     global return_home
+    global direct
+    global path_shot
+    global wumpus
     logic()
-    if return_home == False:
-        #bfs
-        temp = find_path()
-        if len(temp) == 0:
-            return_home = True
+    if len(path_shot) == 0:
+        if return_home == False:
+            #bfs
+            temp = find_path(False)
+            if len(temp) == 0:
+                if len(wumpus) == 0:
+                    return_home = True
+                    temp = find_path(False)
+                else:
+                    path_shot = find_path(True)
+                    path_shot.pop(0)
+                    temp = path_shot[0]
+        else:
             temp = find_path()
     else:
-        temp = find_path()
+        temp = path_shot[0]
     direct_ = 'O'
     if temp[0] == Agent[0] + 1 and temp[1] == Agent[1]:
         direct_ = 'D'
@@ -301,6 +389,16 @@ def agent_play():
         direct_ = 'S'
     if temp[0] == Agent[0] and temp[1] == Agent[1] - 1:
         direct_ = 'W'
+    if len(path_shot) > 0:
+        if direct_ == direct[0]:
+            temp2 = path_shot.pop(0)
+            if len(path_shot) == 0:
+                wumpus.remove(temp2)
+                return direct_,True
+            else:
+                return direct_,False
+        else:
+            return direct_,False
     if temp == (Agent[0],Agent[1]):
         return direct_,True
     return direct_,False
@@ -339,7 +437,9 @@ def change_direct(direct_):
 def play():
     global Agent
     global graph
+    global visited
     global graph2
+    global kb
     for i in range(len(graph)):
         graph2.append([])
         for j in range(len(graph[0])):
@@ -361,7 +461,23 @@ def play():
         exit(0)
     renderMap()
     #renderMapNotFog()
+    #exit()
     run = True
+    #add rule to kb
+    add_rule([[(2,"cur"),(1,("x","y"))],[(3,"Safe"),(1,("x+" ,"y"))],[(3,"Safe"),(1,("x-" ,"y"))],[(3,"Safe"),(1,("x" ,"y+"))],[(3,"Safe"),(1,("x" ,"y-"))]])
+
+    add_rule([[(2,"cur"),(1,("x","y"))],["NOT",(3,"Wumpus"),(1,("x" ,"y"))]])
+                                                                     
+    add_rule([[(2,"Stench"),(1,("x+","y"))],[(2,"Breeze"),(1,("x" ,"y+"))],[(3,"Safe"),(1,("x" ,"y"))],[(3,"Safe"),(1,("x+" ,"y+"))]])
+    add_rule([[(2,"Breeze"),(1,("x+","y"))],[(2,"Stench"),(1,("x" ,"y+"))],[(3,"Safe"),(1,("x" ,"y"))],[(3,"Safe"),(1,("x+" ,"y+"))]])
+    add_rule([[(2,"Stench"),(1,("x","y"))],[(2,"Breeze"),(1,("x+" ,"y+"))],[(3,"Safe"),(1,("x+" ,"y"))],[(3,"Safe"),(1,("x" ,"y+"))]])
+    add_rule([[(2,"Breeze"),(1,("x","y"))],[(2,"Stenche"),(1,("x+" ,"y+"))],[(3,"Safe"),(1,("x+" ,"y"))],[(3,"Safe"),(1,("x" ,"y+"))]])
+                                           
+    add_rule([[(2,"Stench"),(1,("x","y"))],["NOT",(2,"Wumpus"),(1,("x+" ,"y"))],["NOT",(2,"Wumpus"),(1,("x" ,"y+"))],["NOT",(2,"Wumpus"),(1,("x-" ,"y"))],[(3,"Wumpus"),(1,("x" ,"y-"))]])
+    add_rule([[(2,"Stench"),(1,("x","y"))],["NOT",(2,"Wumpus"),(1,("x+" ,"y"))],["NOT",(2,"Wumpus"),(1,("x" ,"y+"))],["NOT",(2,"Wumpus"),(1,("x" ,"y-"))],[(3,"Wumpus"),(1,("x-" ,"y"))]])
+    add_rule([[(2,"Stench"),(1,("x","y"))],["NOT",(2,"Wumpus"),(1,("x" ,"y-"))],["NOT",(2,"Wumpus"),(1,("x" ,"y+"))],["NOT",(2,"Wumpus"),(1,("x-" ,"y"))],[(3,"Wumpus"),(1,("x+" ,"y"))]])
+    add_rule([[(2,"Stench"),(1,("x","y"))],["NOT",(2,"Wumpus"),(1,("x+" ,"y"))],["NOT",(2,"Wumpus"),(1,("x" ,"y-"))],["NOT",(2,"Wumpus"),(1,("x-" ,"y"))],[(3,"Wumpus"),(1,("x" ,"y+"))]])
+                                                                               
     while run == True:
         if numW == 0 and numG == 0:
             font = pygame.font.SysFont("arial", 36)
@@ -425,7 +541,24 @@ def play():
                                 if 'B' not in graph[y2][x2]:
                                     graph[y2][x2] += 'B'
                             if len(buf2) == 0 and flag == False:
+                                upd = graph[y2][x2]
                                 graph[y2][x2] = graph[y2][x2].replace('S','')
+                                clause = []
+                                if 'S' in upd:
+                                    clause = [[(2,"Stench"),(2,(x2,y2))]]
+                                if 'B' in upd:
+                                    clause = [[(2,"Breeze"),(2,(x2,y2))]]
+                                if 'S' in upd and 'B' in upd:
+                                    clause = [[(2,"StenchBreeze"),(2,(x2,y2))]]
+                                if clause in kb:
+                                    kb.remove(clause)
+##                                    if clause[0][0][1] != "Stench":
+##                                        clause = [[(2,"Breeze"),(2,(x2,y2)]]
+##                                        kb.add_rule(clause)
+                                if (x2,y2) in visited:
+                                    visited.remove((x2,y2))
+                                if (x2,y2) not in safe:
+                                    safe.append((x2,y2))
                 Agent = temp
         renderMap()
         
