@@ -24,11 +24,12 @@ screen = pygame.display.set_mode((700,600))
 pygame.display.set_caption('WUMPUS GAME')
 return_home = False
 path_shot = []
-
-#use in logic
+black_wumpus = []
 visited = list()
 safe = list()
 unsafe = list()
+
+#use in logic
 wumpus = list()
 kb = list()
 
@@ -433,12 +434,13 @@ def find_path(shot = False):
     global return_home
     global graph2
     global wumpus
+    global black_wumpus
     explored = []
     fqueue = [[(Agent[0],Agent[1])]]
     while len(fqueue)>0:
         temp = fqueue.pop(0)
         last_node = temp[-1]
-        if last_node in wumpus and shot == True:
+        if last_node in wumpus and shot == True and last_node not in black_wumpus:
             return temp
         if return_home == False and last_node in safe:
             if len(temp) == 1:
@@ -461,6 +463,25 @@ def find_path(shot = False):
                 explored.append(it)
     return []
 
+def add_black_wumpus():
+    global black_wumpus
+    global wumpus
+    global graph2
+    for i in wumpus:
+        x,y = i[0],i[1]
+        buf = [(x+1,y),(x-1,y),(x+1,y),(x,y-1)]
+        temp = []
+        num = 0
+        for j in buf:
+            x2,y2 = j[0],j[1]
+            if canMove(x2,y2) == False:
+                temp.append(j)
+            else:
+                if 'S' in graph2[y2][x2]:
+                    temp.append(j)
+        if len(buf) == len(temp):
+            black_wumpus.append(i)
+            
 def agent_play():
     global Agent
     global return_home
@@ -473,10 +494,11 @@ def agent_play():
             #bfs
             temp = find_path(False)
             if len(temp) == 0:
-                if len(wumpus) == 0:
+                if len(wumpus) - len(black_wumpus) == 0:
                     return_home = True
                     temp = find_path(False)
                 else:
+                    add_black_wumpus()
                     path_shot = find_path(True)
                     path_shot.pop(0)
                     temp = path_shot[0]
