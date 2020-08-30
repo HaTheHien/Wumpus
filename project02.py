@@ -362,6 +362,7 @@ def logic():
             safe.remove((Agent[0],Agent[1]))
     else:
         return
+    #chạy bằng kb
     newClause = solve_kb()
     for it in newClause:
         if type(it[0][0]) == "str":
@@ -376,7 +377,8 @@ def logic():
                 safe.remove(it[0][1][1])
     if clause_cur in kb:
             kb.remove(clause_cur)
-                
+            
+    #chạy bằng if
 ##    #Agent in 'S' or 'B' -> unsafe(adj)
 ##    if 'S' in graph2[Agent[1]][Agent[0]] or 'B' in graph2[Agent[1]][Agent[0]]:
 ##        for it in getAdj(Agent):
@@ -566,18 +568,39 @@ def play():
     #exit()
     run = True
     #add rule to kb
-    add_rule([[(2,"cur"),(1,("x","y"))],["NOT",(2,"Stench"),(1,("x","y"))],["NOT",(2,"Breeze"),(1,("x","y"))],[(3,"Safe"),(1,("x+" ,"y"))],[(3,"Safe"),(1,("x-" ,"y"))],[(3,"Safe"),(1,("x" ,"y+"))],[(3,"Safe"),(1,("x" ,"y-"))]])
-                                                                     
+        #xác định ô an toàn
+    add_rule([[(2,"cur"),(1,("x","y"))],["NOT",(2,"Stench"),(1,("x","y"))],["NOT",(2,"Breeze"),(1,("x","y"))],[(3,"Safe"),(1,("x+" ,"y"))],[(3,"Safe"),(1,("x-" ,"y"))],[(3,"Safe"),(1,("x" ,"y+"))],[(3,"Safe"),(1,("x" ,"y-"))]])  
     add_rule([[(2,"Stench"),(1,("x+","y"))],[(2,"Breeze"),(1,("x" ,"y+"))],[(3,"Safe"),(1,("x" ,"y"))],[(3,"Safe"),(1,("x+" ,"y+"))]])
     add_rule([[(2,"Breeze"),(1,("x+","y"))],[(2,"Stench"),(1,("x" ,"y+"))],[(3,"Safe"),(1,("x" ,"y"))],[(3,"Safe"),(1,("x+" ,"y+"))]])
     add_rule([[(2,"Stench"),(1,("x","y"))],[(2,"Breeze"),(1,("x+" ,"y+"))],[(3,"Safe"),(1,("x+" ,"y"))],[(3,"Safe"),(1,("x" ,"y+"))]])
     add_rule([[(2,"Breeze"),(1,("x","y"))],[(2,"Stenche"),(1,("x+" ,"y+"))],[(3,"Safe"),(1,("x+" ,"y"))],[(3,"Safe"),(1,("x" ,"y+"))]])
-                                           
+        #xác định wumpus                                       
     add_rule([[(2,"Stench"),(1,("x","y"))],[(2,"Visited"),(1,("x+" ,"y"))],[(2,"Visited"),(1,("x" ,"y+"))],[(2,"Visited"),(1,("x-" ,"y"))],[(3,"Wumpus"),(1,("x" ,"y-"))]])
     add_rule([[(2,"Stench"),(1,("x","y"))],[(2,"Visited"),(1,("x+" ,"y"))],[(2,"Visited"),(1,("x" ,"y+"))],[(2,"Visited"),(1,("x" ,"y-"))],[(3,"Wumpus"),(1,("x-" ,"y"))]])
     add_rule([[(2,"Stench"),(1,("x","y"))],[(2,"Visited"),(1,("x" ,"y-"))],[(2,"Visited"),(1,("x" ,"y+"))],[(2,"Visited"),(1,("x-" ,"y"))],[(3,"Wumpus"),(1,("x+" ,"y"))]])
-    add_rule([[(2,"Stench"),(1,("x","y"))],[(2,"Visited"),(1,("x+" ,"y"))],[(2,"Visited"),(1,("x" ,"y-"))],[(2,"Visited"),(1,("x-" ,"y"))],[(3,"Wumpus"),(1,("x" ,"y+"))]])
-                                                                               
+    add_rule([[(2,"Stench"),(1,("x","y"))],[(2,"Visited"),(1,("x+" ,"y"))],[(2,"Visited"),(1,("x" ,"y-"))],[(2,"Visited"),(1,("x-" ,"y"))],[(3,"Wumpus"),(1,("x" ,"y+"))]])                                                      
+    add_rule([[(2,"Stench"),(1,("x","y"))],["NOT",(2,"Move"),(1,("x+" ,"y"))],[(2,"Visited"),(1,("x" ,"y+"))],[(2,"Visited"),(1,("x-" ,"y"))],[(3,"Wumpus"),(1,("x" ,"y-"))]])
+    add_rule([[(2,"Stench"),(1,("x","y"))],[(2,"Visited"),(1,("x+" ,"y"))],["NOT",(2,"Move"),(1,("x" ,"y+"))],[(2,"Visited"),(1,("x-" ,"y"))],[(3,"Wumpus"),(1,("x" ,"y-"))]])
+    add_rule([[(2,"Stench"),(1,("x","y"))],[(2,"Visited"),(1,("x+" ,"y"))],[(2,"Visited"),(1,("x" ,"y+"))],["NOT",(2,"Move"),(1,("x-" ,"y"))],[(3,"Wumpus"),(1,("x" ,"y-"))]])
+
+    add_rule([[(2,"Stench"),(1,("x","y"))],["NOT",(2,"Move"),(1,("x+" ,"y"))],[(2,"Visited"),(1,("x" ,"y+"))],[(2,"Visited"),(1,("x" ,"y-"))],[(3,"Wumpus"),(1,("x-" ,"y"))]])
+    add_rule([[(2,"Stench"),(1,("x","y"))],[(2,"Visited"),(1,("x+" ,"y"))],["NOT",(2,"Move"),(1,("x" ,"y+"))],[(2,"Visited"),(1,("x" ,"y-"))],[(3,"Wumpus"),(1,("x-" ,"y"))]])
+    add_rule([[(2,"Stench"),(1,("x","y"))],[(2,"Visited"),(1,("x+" ,"y"))],[(2,"Visited"),(1,("x" ,"y+"))],["NOT",(2,"Move"),(1,("x" ,"y-"))],[(3,"Wumpus"),(1,("x-" ,"y"))]])
+
+    add_rule([[(2,"Stench"),(1,("x","y"))],["NOT",(2,"Move"),(1,("x" ,"y-"))],[(2,"Visited"),(1,("x" ,"y+"))],[(2,"Visited"),(1,("x-" ,"y"))],[(3,"Wumpus"),(1,("x+" ,"y"))]])
+    add_rule([[(2,"Stench"),(1,("x","y"))],[(2,"Visited"),(1,("x" ,"y-"))],["NOT",(2,"Move"),(1,("x" ,"y+"))],[(2,"Visited"),(1,("x-" ,"y"))],[(3,"Wumpus"),(1,("x+" ,"y"))]])
+    add_rule([[(2,"Stench"),(1,("x","y"))],[(2,"Visited"),(1,("x" ,"y-"))],[(2,"Visited"),(1,("x" ,"y+"))],["NOT",(2,"Move"),(1,("x-" ,"y"))],[(3,"Wumpus"),(1,("x+" ,"y"))]])
+
+    add_rule([[(2,"Stench"),(1,("x","y"))],["NOT",(2,"Move"),(1,("x+" ,"y"))],[(2,"Visited"),(1,("x" ,"y-"))],[(2,"Visited"),(1,("x-" ,"y"))],[(3,"Wumpus"),(1,("x" ,"y+"))]])
+    add_rule([[(2,"Stench"),(1,("x","y"))],[(2,"Visited"),(1,("x+" ,"y"))],["NOT",(2,"Move"),(1,("x" ,"y-"))],[(2,"Visited"),(1,("x-" ,"y"))],[(3,"Wumpus"),(1,("x" ,"y+"))]])
+    add_rule([[(2,"Stench"),(1,("x","y"))],[(2,"Visited"),(1,("x+" ,"y"))],[(2,"Visited"),(1,("x" ,"y-"))],["NOT",(2,"Move"),(1,("x-" ,"y"))],[(3,"Wumpus"),(1,("x" ,"y+"))]])
+
+    #add not Move around map
+    for i in range(-1,height[0] + 1):
+        for j in range(-1,height[0] + 1):
+            if i == height[0] or j == height[0] or i == -1 or j == -1:
+                add_rule([["NOT",(2,"Move"),(2,(j,i))]])
+                
     while run == True:
         if numW == 0 and numG == 0:
             font = pygame.font.SysFont("arial", 36)
@@ -627,8 +650,9 @@ def play():
                         x2,y2 = buf.pop(0)
                         if canMove(y2,x2) == False:
                             continue
-                        buf2 = [(x2+1,y2),(x2-1,y2),(x2,y2+1),(x2,y2-1)]
+                        buf2 = [(x2,y2),(x2+1,y2),(x2-1,y2),(x2,y2+1),(x2,y2-1)]
                         flag = False
+                        flag2 = False
                         while len(buf2) > 0:
                             x3,y3 = buf2.pop(0)
                             if canMove(y3,x3) == False:
@@ -640,6 +664,7 @@ def play():
                             if 'P' in graph[y3][x3]:
                                 if 'B' not in graph[y2][x2]:
                                     graph[y2][x2] += 'B'
+                                flag2 = True
                             if len(buf2) == 0 and flag == False:
                                 upd = graph[y2][x2]
                                 graph[y2][x2] = graph[y2][x2].replace('S','')
@@ -657,8 +682,9 @@ def play():
 ##                                        kb.add_rule(clause)
                                 if (x2,y2) in visited:
                                     visited.remove((x2,y2))
-                                if (x2,y2) not in safe:
-                                    safe.append((x2,y2))
+                                if flag2 == False:
+                                    if (x2,y2) not in safe:
+                                        safe.append((x2,y2))
                 Agent = temp
         renderMap()
         
@@ -675,6 +701,8 @@ if __name__ == '__main__':
     input_graph(file_input)
     play()
     print(kb)
+    print(len(kb))
+    print(safe)
 ##    clause1 = [[(2,"cur"),(1,("x","y"))],["NOT",(2,"Stench"),(1,("x","y"))],["NOT",(2,"Breeze"),(1,("x","y"))],[(3,"Safe"),(1,("x+" ,"y"))],[(3,"Safe"),(1,("x-" ,"y"))],[(3,"Safe"),(1,("x" ,"y+"))],[(3,"Safe"),(1,("x" ,"y-"))]]
 ##    clause2 = [[(2,"cur"),(2,(1,1))]]
 ##    x,y = try_unify(clause1,clause2)
