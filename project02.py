@@ -1,5 +1,6 @@
 import pygame
 import time
+import copy
 graph = []
 graph2 = []
 height = [0]
@@ -118,9 +119,6 @@ def input_graph(file_input):
     screen.fill((0,0,0))
     pygame.display.flip()
 
-#def unify(clause, var, value):
-    
-    
 def renderMapNotFog():
     global player
     global Agent
@@ -237,8 +235,102 @@ def getAdj(node):
             adj.append(temp)
     return adj
 
+def unify(clause, var, value):
+    if type(var) == tuple:
+        for i in range(len(clause)):
+            flag = False
+            if clause[i][0] == "NOT":
+                negate(clause[i])
+                flag = True
+            if type(clause[i][1][1]) == tuple:
+                temp = clause[i][1]
+                if var[0] in temp[1][0] and var[1] in temp[1][1]:
+                    temp = (2, (value[0],value[1]))
+                    if '+' in clause[i][1][1][0]:
+                        temp = (2,(temp[1][0] + 1,temp[1][1]))
+                    if '-' in clause[i][1][1][0]:
+                        temp = (2,(temp[1][0] - 1,temp[1][1]))
+                    if '+' in clause[i][1][1][1]:
+                        temp = (2,(temp[1][0],temp[1][1] + 1))
+                    if '-' in clause[i][1][1][1]:
+                        temp = (2,(temp[1][0],temp[1][1] - 1))
+                    clause[i][1] = temp
+            if flag == True:
+                negate(clause[i])
+    
+def try_unify(C1,C2):
+    j = C2[0]
+    for i in C1:
+        if i[0][0] == 3:
+            break
+        if type(i[0]) == type(j[0]):
+            if i[0] == j[0] and i[1][0] == 1:
+                if i[0] == j[0] and i[1][0] == 1:
+                    x = j[1][1][0]
+                    y = j[1][1][1]
+                    temp = i[1][1]
+                    if '+' in i[1][1][0]:
+                        x-=1
+                        temp = (temp[0].replace('+',''),temp[1])
+                    if '-' in i[1][1][0]:
+                        x+=1
+                        temp = (temp[0].replace('-',''),temp[1])
+                    if '+' in i[1][1][1]:
+                        y-=1
+                        temp = (temp[0],temp[1].replace('+',''))
+                    if '-' in i[1][1][1]:
+                        y+=1
+                        temp = (temp[0],temp[1].replace('-',''))
+                    return temp,(x,y)
+            else:
+                negate(i)
+                negate(j)
+                if i[0] == j[0] and i[1][0] == 1:
+                    x = j[1][1][0]
+                    y = j[1][1][1]
+                    temp = i[1][1]
+                    if '+' in i[1][1][0]:
+                        x-=1
+                        temp = (temp[0].replace('+',''),temp[1])
+                    if '-' in i[1][1][0]:
+                        x+=1
+                        temp = (temp[0].replace('-',''),temp[1])
+                    if '+' in i[1][1][1]:
+                        y-=1
+                        temp = (temp[0],temp[1].replace('+',''))
+                    if '-' in i[1][1][1]:
+                        y+=1
+                        temp = (temp[0],temp[1].replace('-',''))
+                    negate(i)
+                    negate(j)
+                    return temp,(x,y)
+                negate(i)
+                negate(j)
+    return [],[]
+            
 def solve_kb():
     global kb
+    new_clause = []
+    for i in kb:
+        for j in kb:
+            if len(i) > 1:
+                if len(j) == 1:
+                    var,value = try_unify(i.copy(),j.copy())
+                    if len(var) > 0:
+                        clause = copy.deepcopy(i)
+                        unify(clause,var,value)
+                        for k in clause:
+                            if [k] not in kb and k[0][0] != 3:
+                                break
+                            if k[0][0] == 3:
+                                k[0] = (2,k[0][1])
+                                temp = [k.copy()]
+                                new_clause.append(temp)
+                                if temp not in kb:
+                                    kb.append(temp)
+            else:
+                return new_clause
+    return new_clause
     
 def logic():
     global Agent
@@ -250,76 +342,86 @@ def logic():
     global kb
     if (Agent[0],Agent[1]) not in visited:
         clause_cur = [[(2,"cur"),(2,(Agent[0],Agent[1]))]]
+        if [[(2,"Visited"),(2,(Agent[0],Agent[1]))]] not in kb:
+            kb.append([[(2,"Visited"),(2,(Agent[0],Agent[1]))]])
+        add_rule(clause_cur)
         visited.append((Agent[0],Agent[1]))
-        clause = [[(2,""),(2,(Agent[0],Agent[1]))]]
+        clause = [[(2,''),(2,(Agent[0],Agent[1]))]]
         if 'S' in graph2[Agent[1]][Agent[0]]:
             clause[0][0] = (2,clause[0][0][1]+ "Stench")
         if 'B' in graph2[Agent[1]][Agent[0]]:
             clause[0][0] = (2,clause[0][0][1]+ "Breeze")
-        add_rule(clause)
+        if clause == [[(2,''),(2,(Agent[0],Agent[1]))]]:
+            if [["NOT",(2,"Stench"),(2,(Agent[0],Agent[1]))]] not in kb:
+                kb.append([["NOT",(2,"Stench"),(2,(Agent[0],Agent[1]))]])
+            if [["NOT",(2,"Breeze"),(2,(Agent[0],Agent[1]))]] not in kb:
+                kb.append([["NOT",(2,"Breeze"),(2,(Agent[0],Agent[1]))]])
+        else:
+            add_rule(clause)
         if (Agent[0],Agent[1]) in safe:
             safe.remove((Agent[0],Agent[1]))
-        if clause_cur in kb:
-            kb.remove(clause_cur)
     else:
         return
-##    newClause = solve_kb()
-##    for it in newClause:
-##        if type(it[0][0]) == "str":
-##            continue
-##        if it[0][0][1] == "Safe":
-##            if it[0][1][1] not in safe:
-##                safe.append(it[0][1][1])
-##        if it[0][0][1] == "Wumpus":
-##            if it[0][1][1] not in wumpus:
-##                wumpus.append(it[0][1][1])
-
+    newClause = solve_kb()
+    for it in newClause:
+        if type(it[0][0]) == "str":
+            continue
+        if it[0][0][1] == "Safe":
+            if it[0][1][1] not in safe and it[0][1][1] not in visited:
+                safe.append(it[0][1][1])
+        if it[0][0][1] == "Wumpus":
+            if it[0][1][1] not in wumpus:
+                wumpus.append(it[0][1][1])
+            if it[0][1][1] in safe:
+                safe.remove(it[0][1][1])
+    if clause_cur in kb:
+            kb.remove(clause_cur)
                 
-    #Agent in 'S' or 'B' -> unsafe(adj)
-    if 'S' in graph2[Agent[1]][Agent[0]] or 'B' in graph2[Agent[1]][Agent[0]]:
-        for it in getAdj(Agent):
-            if it not in safe and it not in visited and it not in unsafe:
-                unsafe.append(it)
-    #Agent not in 'S' or not in 'B' -> safe(adj)
-    else:
-        for it in getAdj(Agent):
-            if it not in visited and it not in safe:
-                safe.append(it)
-            if it in unsafe:
-                unsafe.remove(it)
-    
-    #'B' and 'S' in adj -> remove unsafe
-    for it in unsafe:
-        num1 = (-1,-1)
-        num2 = (-1,-1)
-        for it1 in getAdj(it):
-            if num1 == (-1,-1) and 'S' in graph2[it1[1]][it1[0]] and 'B' not in graph2[it1[1]][it1[0]]:
-                num1 = it1
-            if num2 == (-1,-1) and 'B' in graph2[it1[1]][it1[0]] and 'S' not in graph2[it1[1]][it1[0]]:
-                num2 = it1
-        if num1 != (-1,-1) and num2 != (-1,-1):
-            if it in unsafe:
-                unsafe.remove(it)
-            if it not in safe and it not in visited:
-                safe.append(it)
-
-    for it in visited:
-        #node is 'S' and (all adj - 1) is visited and not 'W', only one cell unvisited  -> W in this one cell  
-        if 'S' in graph2[it[1]][it[0]]:
-            l1 = getAdj(it)
-            temp = []
-            for it1 in l1:
-                if it1 in visited:
-                    temp.append(it1)
-            if len(l1) - len(temp) == 1:
-                for it2 in l1:
-                    if it2 not in temp:
-                        temp2 = it2
-                        if temp2 not in wumpus:
-                            wumpus.append(temp2)
-                        if temp2 in safe:
-                            safe.remove(temp2)
-                        break
+##    #Agent in 'S' or 'B' -> unsafe(adj)
+##    if 'S' in graph2[Agent[1]][Agent[0]] or 'B' in graph2[Agent[1]][Agent[0]]:
+##        for it in getAdj(Agent):
+##            if it not in safe and it not in visited and it not in unsafe:
+##                unsafe.append(it)
+##    #Agent not in 'S' or not in 'B' -> safe(adj)
+##    else:
+##        for it in getAdj(Agent):
+##            if it not in visited and it not in safe:
+##                safe.append(it)
+##            if it in unsafe:
+##                unsafe.remove(it)
+##    
+##    #'B' and 'S' in adj -> remove unsafe
+##    for it in unsafe:
+##        num1 = (-1,-1)
+##        num2 = (-1,-1)
+##        for it1 in getAdj(it):
+##            if num1 == (-1,-1) and 'S' in graph2[it1[1]][it1[0]] and 'B' not in graph2[it1[1]][it1[0]]:
+##                num1 = it1
+##            if num2 == (-1,-1) and 'B' in graph2[it1[1]][it1[0]] and 'S' not in graph2[it1[1]][it1[0]]:
+##                num2 = it1
+##        if num1 != (-1,-1) and num2 != (-1,-1):
+##            if it in unsafe:
+##                unsafe.remove(it)
+##            if it not in safe and it not in visited:
+##                safe.append(it)
+##
+##    for it in visited:
+##        #node is 'S' and (all adj - 1) is visited and not 'W', only one cell unvisited  -> W in this one cell  
+##        if 'S' in graph2[it[1]][it[0]]:
+##            l1 = getAdj(it)
+##            temp = []
+##            for it1 in l1:
+##                if it1 in visited:
+##                    temp.append(it1)
+##            if len(l1) - len(temp) == 1:
+##                for it2 in l1:
+##                    if it2 not in temp:
+##                        temp2 = it2
+##                        if temp2 not in wumpus:
+##                            wumpus.append(temp2)
+##                        if temp2 in safe:
+##                            safe.remove(temp2)
+##                        break
 
             
 def find_path(shot = False):
@@ -464,19 +566,17 @@ def play():
     #exit()
     run = True
     #add rule to kb
-    add_rule([[(2,"cur"),(1,("x","y"))],[(3,"Safe"),(1,("x+" ,"y"))],[(3,"Safe"),(1,("x-" ,"y"))],[(3,"Safe"),(1,("x" ,"y+"))],[(3,"Safe"),(1,("x" ,"y-"))]])
-
-    add_rule([[(2,"cur"),(1,("x","y"))],["NOT",(3,"Wumpus"),(1,("x" ,"y"))]])
+    add_rule([[(2,"cur"),(1,("x","y"))],["NOT",(2,"Stench"),(1,("x","y"))],["NOT",(2,"Breeze"),(1,("x","y"))],[(3,"Safe"),(1,("x+" ,"y"))],[(3,"Safe"),(1,("x-" ,"y"))],[(3,"Safe"),(1,("x" ,"y+"))],[(3,"Safe"),(1,("x" ,"y-"))]])
                                                                      
     add_rule([[(2,"Stench"),(1,("x+","y"))],[(2,"Breeze"),(1,("x" ,"y+"))],[(3,"Safe"),(1,("x" ,"y"))],[(3,"Safe"),(1,("x+" ,"y+"))]])
     add_rule([[(2,"Breeze"),(1,("x+","y"))],[(2,"Stench"),(1,("x" ,"y+"))],[(3,"Safe"),(1,("x" ,"y"))],[(3,"Safe"),(1,("x+" ,"y+"))]])
     add_rule([[(2,"Stench"),(1,("x","y"))],[(2,"Breeze"),(1,("x+" ,"y+"))],[(3,"Safe"),(1,("x+" ,"y"))],[(3,"Safe"),(1,("x" ,"y+"))]])
     add_rule([[(2,"Breeze"),(1,("x","y"))],[(2,"Stenche"),(1,("x+" ,"y+"))],[(3,"Safe"),(1,("x+" ,"y"))],[(3,"Safe"),(1,("x" ,"y+"))]])
                                            
-    add_rule([[(2,"Stench"),(1,("x","y"))],["NOT",(2,"Wumpus"),(1,("x+" ,"y"))],["NOT",(2,"Wumpus"),(1,("x" ,"y+"))],["NOT",(2,"Wumpus"),(1,("x-" ,"y"))],[(3,"Wumpus"),(1,("x" ,"y-"))]])
-    add_rule([[(2,"Stench"),(1,("x","y"))],["NOT",(2,"Wumpus"),(1,("x+" ,"y"))],["NOT",(2,"Wumpus"),(1,("x" ,"y+"))],["NOT",(2,"Wumpus"),(1,("x" ,"y-"))],[(3,"Wumpus"),(1,("x-" ,"y"))]])
-    add_rule([[(2,"Stench"),(1,("x","y"))],["NOT",(2,"Wumpus"),(1,("x" ,"y-"))],["NOT",(2,"Wumpus"),(1,("x" ,"y+"))],["NOT",(2,"Wumpus"),(1,("x-" ,"y"))],[(3,"Wumpus"),(1,("x+" ,"y"))]])
-    add_rule([[(2,"Stench"),(1,("x","y"))],["NOT",(2,"Wumpus"),(1,("x+" ,"y"))],["NOT",(2,"Wumpus"),(1,("x" ,"y-"))],["NOT",(2,"Wumpus"),(1,("x-" ,"y"))],[(3,"Wumpus"),(1,("x" ,"y+"))]])
+    add_rule([[(2,"Stench"),(1,("x","y"))],[(2,"Visited"),(1,("x+" ,"y"))],[(2,"Visited"),(1,("x" ,"y+"))],[(2,"Visited"),(1,("x-" ,"y"))],[(3,"Wumpus"),(1,("x" ,"y-"))]])
+    add_rule([[(2,"Stench"),(1,("x","y"))],[(2,"Visited"),(1,("x+" ,"y"))],[(2,"Visited"),(1,("x" ,"y+"))],[(2,"Visited"),(1,("x" ,"y-"))],[(3,"Wumpus"),(1,("x-" ,"y"))]])
+    add_rule([[(2,"Stench"),(1,("x","y"))],[(2,"Visited"),(1,("x" ,"y-"))],[(2,"Visited"),(1,("x" ,"y+"))],[(2,"Visited"),(1,("x-" ,"y"))],[(3,"Wumpus"),(1,("x+" ,"y"))]])
+    add_rule([[(2,"Stench"),(1,("x","y"))],[(2,"Visited"),(1,("x+" ,"y"))],[(2,"Visited"),(1,("x" ,"y-"))],[(2,"Visited"),(1,("x-" ,"y"))],[(3,"Wumpus"),(1,("x" ,"y+"))]])
                                                                                
     while run == True:
         if numW == 0 and numG == 0:
@@ -574,3 +674,9 @@ if __name__ == '__main__':
     file_input = menu()
     input_graph(file_input)
     play()
+    print(kb)
+##    clause1 = [[(2,"cur"),(1,("x","y"))],["NOT",(2,"Stench"),(1,("x","y"))],["NOT",(2,"Breeze"),(1,("x","y"))],[(3,"Safe"),(1,("x+" ,"y"))],[(3,"Safe"),(1,("x-" ,"y"))],[(3,"Safe"),(1,("x" ,"y+"))],[(3,"Safe"),(1,("x" ,"y-"))]]
+##    clause2 = [[(2,"cur"),(2,(1,1))]]
+##    x,y = try_unify(clause1,clause2)
+##    unify(clause1,x,y)
+##    print(clause1)
