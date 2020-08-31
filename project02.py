@@ -38,7 +38,13 @@ kb = list()
 def add_rule(rule):
     global kb
     if rule not in kb:
+        print('add:',rule)
         kb.append(rule)
+def remove_rule(rule):
+    global kb
+    if rule in kb:
+        print('remove:',rule)
+        kb.remove(rule)
 
 def negate(alpha):
     if alpha[0] == "NOT":
@@ -330,7 +336,7 @@ def solve_kb():
                                 temp = [k.copy()]
                                 new_clause.append(temp)
                                 if temp not in kb:
-                                    kb.append(temp)
+                                    add_rule(temp)
             else:
                 return new_clause
     return new_clause
@@ -346,7 +352,7 @@ def logic():
     if (Agent[0],Agent[1]) not in visited:
         clause_cur = [[(2,"cur"),(2,(Agent[0],Agent[1]))]]
         if [[(2,"Visited"),(2,(Agent[0],Agent[1]))]] not in kb:
-            kb.append([[(2,"Visited"),(2,(Agent[0],Agent[1]))]])
+            add_rule([[(2,"Visited"),(2,(Agent[0],Agent[1]))]])
         add_rule(clause_cur)
         visited.append((Agent[0],Agent[1]))
         clause = [[(2,''),(2,(Agent[0],Agent[1]))]]
@@ -356,9 +362,9 @@ def logic():
             clause[0][0] = (2,clause[0][0][1]+ "Breeze")
         if clause == [[(2,''),(2,(Agent[0],Agent[1]))]]:
             if [["NOT",(2,"Stench"),(2,(Agent[0],Agent[1]))]] not in kb:
-                kb.append([["NOT",(2,"Stench"),(2,(Agent[0],Agent[1]))]])
+                add_rule([["NOT",(2,"Stench"),(2,(Agent[0],Agent[1]))]])
             if [["NOT",(2,"Breeze"),(2,(Agent[0],Agent[1]))]] not in kb:
-                kb.append([["NOT",(2,"Breeze"),(2,(Agent[0],Agent[1]))]])
+                add_rule([["NOT",(2,"Breeze"),(2,(Agent[0],Agent[1]))]])
         else:
             add_rule(clause)
         if (Agent[0],Agent[1]) in safe:
@@ -380,7 +386,7 @@ def logic():
                 safe.remove(it[0][1][1])
     print()
     if clause_cur in kb:
-            kb.remove(clause_cur)
+       remove_rule(clause_cur)
             
     #chạy bằng if
 ##    #Agent in 'S' or 'B' -> unsafe(adj)
