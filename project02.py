@@ -1,6 +1,7 @@
 import pygame
 import time
 import copy
+import os
 graph = []
 graph2 = []
 height = [0]
@@ -28,6 +29,7 @@ black_wumpus = []
 visited = list()
 safe = list()
 unsafe = list()
+fout = open('output.txt','w')
 
 #use in logic
 wumpus = list()
@@ -366,16 +368,17 @@ def logic():
     #chạy bằng kb
     newClause = solve_kb()
     for it in newClause:
-        if type(it[0][0]) == "str":
-            continue
         if it[0][0][1] == "Safe":
             if it[0][1][1] not in safe and it[0][1][1] not in visited:
+                print(it)
                 safe.append(it[0][1][1])
         if it[0][0][1] == "Wumpus":
             if it[0][1][1] not in wumpus:
+                print(it)
                 wumpus.append(it[0][1][1])
             if it[0][1][1] in safe:
                 safe.remove(it[0][1][1])
+    print()
     if clause_cur in kb:
             kb.remove(clause_cur)
             
@@ -500,8 +503,12 @@ def agent_play():
                 else:
                     add_black_wumpus()
                     path_shot = find_path(True)
-                    path_shot.pop(0)
-                    temp = path_shot[0]
+                    if len(path_shot) == 0:
+                        return_home = True
+                        temp = Agent
+                    else:
+                        path_shot.pop(0)
+                        temp = path_shot[0]
         else:
             temp = find_path()
     else:
@@ -532,6 +539,7 @@ def agent_play():
 def change_direct(direct_):
     global player
     global Agent
+    print('action:' , direct_)
     if direct_ == 'O':
         return 0
     if direct[0] == direct_:
@@ -547,6 +555,7 @@ def change_direct(direct_):
         if canMove(Agent[0],Agent[1]) == False:
             Agent = temp
             return 0
+        fout.write('(' +str(Agent[0]) + ',' + str(Agent[1]) + '), ')
         return 10
     else:
         if direct_ == 'W':
@@ -649,6 +658,7 @@ def play():
             graph[Agent[1]][Agent[0]] = graph[Agent[1]][Agent[0]].replace('G', '')   
         if shot == True :
             if 'D' in graph[Agent[1]][Agent[0]]:
+                print('action: escape')
                 score[0] += 10
                 renderMap()
                 font = pygame.font.SysFont("arial", 36)
@@ -660,6 +670,7 @@ def play():
                 time.sleep(0.3)
                 return
             else:
+                print('action: shot')
                 score[0] -= 100
                 temp = Agent.copy()
                 change_direct(direct_)
@@ -722,9 +733,8 @@ if __name__ == '__main__':
     file_input = menu()
     input_graph(file_input)
     play()
-    print(kb)
-    print(len(kb))
-    print(safe)
+    fout.close()
+    os.system("pause")
 ##    clause1 = [[(2,"cur"),(1,("x","y"))],["NOT",(2,"Stench"),(1,("x","y"))],["NOT",(2,"Breeze"),(1,("x","y"))],[(3,"Safe"),(1,("x+" ,"y"))],[(3,"Safe"),(1,("x-" ,"y"))],[(3,"Safe"),(1,("x" ,"y+"))],[(3,"Safe"),(1,("x" ,"y-"))]]
 ##    clause2 = [[(2,"cur"),(2,(1,1))]]
 ##    x,y = try_unify(clause1,clause2)
